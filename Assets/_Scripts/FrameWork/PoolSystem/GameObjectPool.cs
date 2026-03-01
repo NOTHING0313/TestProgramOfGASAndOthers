@@ -54,7 +54,7 @@ namespace PoolSystem
             _availableInstances.AddLast(instance);
         }
         #region IReference
-        public uint ReferenceType => ReferencePool.DEFAULT_REFERENCE_COUNT;
+        public uint ReferenceType => ReferenceTypes.GAMEOBJECTPOOL;
         int IReference.IndexInReferencePool { get; set; }
         public void OnRecycle()
         {

@@ -7,7 +7,7 @@ namespace PoolSystem
 {
     public static class ReferenceTypes
     {
-        public const int REFERENCE_TYPE_COUNT = 10;
+        public const int REFERENCE_TYPE_COUNT = 11;
 
         public const uint GAMEOBJECTPOOL = 0;
         public const uint ABILITYCOMPONENTCONTEXT = 1;
@@ -19,6 +19,7 @@ namespace PoolSystem
         public const uint COMPONENTSET = 7;
         public const uint ATTRIBUTESET = 8;
         public const uint ATTRIBUTESETSNAPSHOT = 9;
+        public const uint QUERY = 10;
 
         public static readonly Type[] types = new Type[REFERENCE_TYPE_COUNT]
         {
@@ -31,7 +32,8 @@ namespace PoolSystem
            typeof(GAS.Attribute.AttributeSnapShot),
            typeof(ComponentSet),
            typeof(AttributeSet),
-           typeof(AttributeSet.AttributeSetSnapShot)
+           typeof(AttributeSet.AttributeSetSnapShot),
+           typeof(Query)
         };
         /// <summary>
         /// 获取类型对应的反射
