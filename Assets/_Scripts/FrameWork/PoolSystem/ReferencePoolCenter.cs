@@ -14,7 +14,7 @@ namespace PoolSystem
         /// 池化对象类型
         /// </typeparam>
         /// <returns></returns>
-        public TReference GetReference<TReference>() where TReference : IReference,new()
+        public TReference GetReference<TReference>() where TReference : IReference<TReference>, new()
         {
             int index = ReferenceTypes.GetReferenceTypeIndex<TReference>();
             if (index == -1)
@@ -37,7 +37,7 @@ namespace PoolSystem
         /// 池化对象类型
         /// </typeparam>
         /// <param name="reference"></param>
-        public void ReleaseReference<TReference>(TReference reference)where TReference : IReference, new()
+        public void ReleaseReference<TReference>(TReference reference)where TReference : IReference<TReference>, new()
         {
             int index = ReferenceTypes.GetReferenceTypeIndex<TReference>();
             if (index == -1)

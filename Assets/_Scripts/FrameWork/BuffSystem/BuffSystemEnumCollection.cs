@@ -1,20 +1,5 @@
 namespace BuffSystem
 {
-    public enum BuffTag
-    {
-        /// <summary>
-        /// 负面
-        /// </summary>
-        Negative,
-        /// <summary>
-        /// 正面
-        /// </summary>
-        Positive,
-        /// <summary>
-        /// 中立
-        /// </summary>
-        Neuter
-    }
     public enum BuffTriggerType
     {
         /// <summary>
@@ -26,13 +11,8 @@ namespace BuffSystem
         /// </summary>
         EventTrigger
     }
-    public enum BuffStackUpStrategy
+    public interface IBuffStackStrategy
     {
-
+        public string ID { get; }
     }
-    public enum BuffStackDownStrategy
-    {
-
-    }
-
 }

@@ -1,7 +1,8 @@
-using Utility.EventCente;
+using PoolSystem;
+
 namespace BuffSystem
 {
-    public abstract class Buff 
+    public abstract class Buff
     {
         public BuffConfigData ConfigData;
         public BuffRuntimeData RunTimeData;
@@ -15,8 +16,7 @@ namespace BuffSystem
         public virtual bool IsStackOver => !ConfigData.IsForever && RunTimeData.RunTime >= RunTimeData.ActualDuration;
         public abstract void StartBuff();
         public abstract void EndBuff();
-        public abstract void IncreaseBuffStack(int buffStackCount = 1);
-        public abstract void DecreaseBuffStack(int buffStackCount = 1);
-        public abstract void TriggerBuff(IEventData eventData);
+        public abstract int DownBuffStack(int stackCount = 1);
+        public abstract void UpperBuffStack(int stackCount = 1);
     }
 }

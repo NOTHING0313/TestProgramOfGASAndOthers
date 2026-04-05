@@ -1,4 +1,4 @@
-namespace Utility.EventCente
+namespace Utility.EventCenter
 {
     public interface IEventData { }
     /// <summary>

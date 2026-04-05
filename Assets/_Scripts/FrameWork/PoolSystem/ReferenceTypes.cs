@@ -1,53 +1,39 @@
-using ECS;
-using GAS;
-using System;
 using UnityEngine;
-
+using System;
+using BuffSystem;
+using GAS;
 namespace PoolSystem
 {
-    public static class ReferenceTypes
-    {
-        public const int REFERENCE_TYPE_COUNT = 11;
-
-        public const uint GAMEOBJECTPOOL = 0;
-        public const uint ABILITYCOMPONENTCONTEXT = 1;
-        public const uint ABILITYRUNTIMECONTEXT = 2;
-        public const uint BLACKBOARD = 3;
-        public const uint BLACKBOARDSNAPSHOT = 4;
-        public const uint ATTRIBUTE = 5;
-        public const uint ATTRIBUTESNAPSHOT = 6;
-        public const uint COMPONENTSET = 7;
-        public const uint ATTRIBUTESET = 8;
-        public const uint ATTRIBUTESETSNAPSHOT = 9;
-        public const uint QUERY = 10;
-
-        public static readonly Type[] types = new Type[REFERENCE_TYPE_COUNT]
-        {
-           typeof(GameObjectPool),
-           typeof(AbilityComponentContext),
-           typeof(AbilityRuntimeContext),
-           typeof(BlackBoard),
-           typeof(BlackBoard.BlackBoardSnapShot),
-           typeof(GAS.Attribute),
-           typeof(GAS.Attribute.AttributeSnapShot),
-           typeof(ComponentSet),
-           typeof(AttributeSet),
-           typeof(AttributeSet.AttributeSetSnapShot),
-           typeof(Query)
-        };
+public static class ReferenceTypes
+{
+public const int REFERENCE_TYPE_COUNT = 12;
+public const uint GAMEOBJECTPOOL = 0;
+public const uint BUFFRUNTIMEDATA = 1;
+public const uint PARALLELBUFFRUNTIMEDATA = 2;
+public const uint ABILITYRUNTIMECONTEXT = 3;
+public const uint BLACKBOARD = 4;
+public const uint ABILITYCOMPONENT = 5;
+public const uint ABILITYCOMPONENTCONTEXT = 6;
+public const uint ATTRIBUTESET = 7;
+public const uint ATTRIBUTE = 8;
+public const uint ATTRIBUTESETSNAPSHOT = 9;
+public const uint ATTRIBUTESNAPSHOT = 10;
+public const uint BLACKBOARDSNAPSHOT = 11;
+public static readonly Type[] types = new Type[REFERENCE_TYPE_COUNT]
+{typeof(GameObjectPool),typeof(BuffRuntimeData),typeof(ParallelBuffRunTimeData),typeof(AbilityRuntimeContext),typeof(BlackBoard),typeof(AbilityComponent),typeof(AbilityComponentContext),typeof(AttributeSet),typeof(GAS.Attribute),typeof(AttributeSet.AttributeSetSnapShot),typeof(GAS.Attribute.AttributeSnapShot),typeof(BlackBoard.BlackBoardSnapShot)};
         /// <summary>
-        /// ªÒ»°¿‡–Õ∂‘”¶µƒ∑¥…‰
+        /// Ëé∑ÂèñÁ±ªÂûãÂØπÂ∫îÁöÑÂèçÂ∞Ñ
         /// </summary>
         /// <param name="referenceType">
-        /// ¿‡–Õ
+        /// Á±ªÂûã
         /// </param>
         /// <param name="reference">
-        /// ∂‘”¶µƒ∑¥…‰¿‡–Õ
+        /// ÂØπÂ∫îÁöÑÂèçÂ∞ÑÁ±ªÂûã
         /// </param>
         /// <returns>
-        ///  «∑Ò≥…π¶ªÒ»°
+        /// ÊòØÂê¶ÊàêÂäüËé∑Âèñ
         /// </returns>
-        public static bool GetReference(in uint referenceType,out Type reference)
+        public static bool GetReference(in uint referenceType, out Type reference)
         {
             if (referenceType > REFERENCE_TYPE_COUNT)
             {
@@ -59,16 +45,16 @@ namespace PoolSystem
             return true;
         }
         /// <summary>
-        /// ªÒ»°¿‡–Õ‘⁄¡–±Ì÷–µƒŒª÷√
+        /// Ëé∑ÂèñÁ±ªÂûãÂú®ÂàóË°®‰∏≠ÁöÑ‰ΩçÁΩÆ
         /// </summary>
         /// <typeparam name="TReference"></typeparam>
         /// <returns></returns>
-        public static int GetReferenceTypeIndex<TReference>() where TReference : IReference, new()
+        public static int GetReferenceTypeIndex<TReference>() where TReference : IReference<TReference>, new()
         {
             return GetReferenceTypeIndex(typeof(TReference));
         }
         /// <summary>
-        /// ªÒ»°¿‡–Õ‘⁄¡–±Ì÷–µƒŒª÷√
+        /// Ëé∑ÂèñÁ±ªÂûãÂú®ÂàóË°®‰∏≠ÁöÑ‰ΩçÁΩÆ
         /// </summary>
         /// <returns></returns>
         public static int GetReferenceTypeIndex(Type referenceType)
