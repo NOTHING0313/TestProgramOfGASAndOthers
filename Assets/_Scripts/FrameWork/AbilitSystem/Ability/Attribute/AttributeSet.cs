@@ -31,7 +31,6 @@ namespace GAS
                 map.Remove(attributeID);
         }
         #region IReference
-        public uint ReferenceType => ReferenceTypes.ATTRIBUTESET;
         int IReference.IndexInReferencePool { get; set; }
         public IReference GetNewInstance() => new AttributeSet();
         public void OnRecycle()=> map.Clear();
@@ -46,7 +45,6 @@ namespace GAS
         {
             public List<int> MapKeyCopy;
             public List<ISnapShot> MapValueCopy;
-            public uint ReferenceType => ReferenceTypes.ATTRIBUTESETSNAPSHOT;
             public int LocalizedLogicFrameCount { get; }
             int IReference.IndexInReferencePool { get; set; }
             public IReference GetNewInstance()

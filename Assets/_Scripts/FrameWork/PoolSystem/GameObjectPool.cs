@@ -1,72 +1,114 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
-using Utility;
+
 namespace PoolSystem
 {
-    public class GameObjectPool :IReference<GameObjectPool>
+    public sealed class GameObjectPool
     {
-        private int _poolID;
-        private GameObject _prefab;
-        private LinkedList<GameObject> _availableInstances;
-        private GameObject _root;
-
-        public void Init(GameObject prefab, int poolID, GameObject root, int initialCapacity = 8)
+        private readonly int _poolID;
+        private readonly GameObject _prefab;
+        private readonly Transform _root;
+        private readonly Stack<GameObject> _available = new();
+        private readonly HashSet<GameObject> _inUse = new();
+        public int PoolID => _poolID;
+        public GameObject Prefab => _prefab;
+        public Transform Root => _root;
+        public int AvailableCount => _available.Count;
+        public int InUseCount => _inUse.Count;
+        public GameObjectPool(GameObject prefab, int poolID, Transform root, int initialCapacity)
         {
-            this._poolID = poolID;
-            this._prefab = prefab;
-            this._root = root;
-
-            _availableInstances = new();
+            _prefab = prefab;
+            _poolID = poolID;
+            _root = root;
             Expand(initialCapacity);
         }
-        private void Expand(int initialCapacity = 1)
+        public void Expand(int count = 1)
         {
-            for (int i = 0; i < initialCapacity; i++)
+            for (int i = 0; i < count; i++)
             {
-                GameObject tempGO = GameObject.Instantiate(_prefab,_root.transform);
-                tempGO.AddComponent<BelongToPoolIDMarker>().PoolID = _poolID;
-                tempGO.SetActive(false);
-                _availableInstances.AddLast(tempGO);
+                GameObject go = UnityEngine.Object.Instantiate(_prefab, _root);
+                go.SetActive(false);
+                PoolItem item = go.GetComponent<PoolItem>();
+                if (item == null)
+                    item = go.AddComponent<PoolItem>();
+                item.PoolID = _poolID;
+                item.PrefabInstanceID = _prefab.GetInstanceID();
+                item.IsInPool = true;
+                _available.Push(go);
             }
         }
-        public GameObject GetGameObject(Vector3 pos,Quaternion quaternion,Transform parent=null,Action<GameObject> onBeforeSetActive=null)
+        public GameObject Get(Vector3 worldPosition, Quaternion worldRotation, Transform parent = null, Action<GameObject> onBeforeGet = null)
         {
-            if(_availableInstances.Count==0)
+            if (_available.Count == 0)
                 Expand();
-            LinkedListNode<GameObject> tempNode = _availableInstances.Last;
-            _availableInstances.RemoveLast();
-            GameObject tempGo = tempNode.Value;
-            tempGo.transform.position = pos;
-            tempGo.transform.rotation = quaternion;
-            if(parent)
-                tempGo.transform.SetParent(parent);
-            onBeforeSetActive?.Invoke(tempGo);
-            tempGo.SetActive(true);
-            return tempGo;
+            GameObject go = _available.Pop();
+            _inUse.Add(go);
+            Transform t = go.transform;
+            t.SetParent(parent, true);
+            t.position = worldPosition;
+            t.rotation = worldRotation;
+            t.localScale = Vector3.one;
+            PoolItem item = go.GetComponent<PoolItem>();
+            item.IsInPool = false;
+            onBeforeGet?.Invoke(go);
+            InvokePoolableOnGet(go);
+            go.SetActive(true);
+            return go;
         }
-        public void ReleaseInstance(GameObject instance, Action<GameObject> onAfterSetActive = null)
+        public void Release(GameObject instance, Action<GameObject> onBeforeRelease = null)
         {
+            if (instance == null)
+            {
+                Debug.LogError("GameObjectPool Release Error: Instance Is Null.");
+                return;
+            }
+
+            PoolItem item = instance.GetComponent<PoolItem>();
+            if (item == null || item.PoolID != _poolID)
+            {
+                Debug.LogError("GameObjectPool Release Error: Instance Does Not Belong To This Pool.");
+                return;
+            }
+
+            if (item.IsInPool)
+            {
+                Debug.LogError("GameObjectPool Release Error: Repeated Release Detected.");
+                return;
+            }
+            onBeforeRelease?.Invoke(instance);
+            InvokePoolableOnRelease(instance);
             instance.SetActive(false);
-            instance.transform.SetParent(_root.transform);
-            onAfterSetActive?.Invoke(instance);
-            _availableInstances.AddLast(instance);
+            Transform t = instance.transform;
+            t.SetParent(_root, false);
+            t.localPosition = Vector3.zero;
+            t.localRotation = Quaternion.identity;
+            t.localScale = Vector3.one;
+            item.IsInPool = true;
+            _inUse.Remove(instance);
+            _available.Push(instance);
         }
-        #region IReference
-        public uint ReferenceType => ReferenceTypes.GAMEOBJECTPOOL;
-        int IReference.IndexInReferencePool { get; set; }
-        public void OnRecycle()
+        public void Clear()
         {
-            _availableInstances.Clear();
-            _prefab = null;
+            foreach (GameObject go in _available)
+                if (go != null)
+                    UnityEngine.Object.Destroy(go);
+            foreach (GameObject go in _inUse)
+                if (go != null)
+                    UnityEngine.Object.Destroy(go);
+            _available.Clear();
+            _inUse.Clear();
         }
-        public void Dispose()
+        private void InvokePoolableOnGet(GameObject go)
         {
-            OnRecycle();
-            _availableInstances = null;
+            foreach (var poolable in go.GetComponentsInChildren<IPoolable>(true))
+                poolable.OnGetFromPool();
         }
-        public IReference GetNewInstance() => new GameObjectPool() {_availableInstances=new(),_prefab=null,_root=null };
-        #endregion
+        private void InvokePoolableOnRelease(GameObject go)
+        {
+            foreach (var poolable in go.GetComponentsInChildren<IPoolable>(true))
+                poolable.OnReleaseToPool();
+        }
     }
 }

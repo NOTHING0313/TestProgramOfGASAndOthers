@@ -110,24 +110,11 @@ namespace AudioSystem
                 return default;
             }
             GameObject go = GameObjectPoolCenter.Instance.GetInstance(_prefab, pos, Quaternion.identity, parent: null,
-               onBeforSetActive: obj =>
+               onBeforeSetActive: obj =>
                {
                    // 确保有 PooledAudioSource/AudioSource
                    var pooled = obj.GetComponent<PooledAudioSource>();
                    if (pooled == null) pooled = obj.AddComponent<PooledAudioSource>();
-
-                   // 把 AudioEvent 应用到 AudioSource（见下面函数，字段逐个对应）
-                   AudioMixerGroup outGroup = null;
-                   if (audioEvent.autoAudioBus)
-                   {
-                       if (_router != null)
-                       {
-                           _router.TryGetGroup(audioEvent.bus, out outGroup);
-                       }
-                   }
-                   else
-                       outGroup = audioEvent.mixerGroup;
-                   pooled.Source.outputAudioMixerGroup = outGroup;
                    // 如果不需要 update 跟随，可以直接挂 parent 跟随
                    if (follow != null && !followInUpdate)
                    {
@@ -145,7 +132,7 @@ namespace AudioSystem
             _active[token] = pooledSrc;
             _playingCount.TryGetValue(id, out int cur);
             _playingCount[id] = cur + 1;
-            pooledSrc.Init(audioEvent);
+            pooledSrc.Init(audioEvent, _router);
             pooledSrc.Play(token, onFinished, follow, followInUpdate);
             _lastPlayTime[id] = Time.unscaledTime;
             return new AudioHandle() { id = audioEvent.id, token = token, pooled = pooledSrc };

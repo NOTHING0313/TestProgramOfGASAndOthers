@@ -1,12 +1,12 @@
 using UnityEngine;
 using Utility;
 using System;
+using System.Collections.Generic;
 namespace PoolSystem
 {
     public sealed class ReferencePoolCenter : Singleton<ReferencePoolCenter>
     {
-        protected override bool _isDonDestroyOnLoad => true;
-        private ReferencePool[] _referencePools = new ReferencePool[ReferenceTypes.REFERENCE_TYPE_COUNT];
+        private Dictionary<Type, ReferencePool> _referencePools = new();
         /// <summary>
         /// 获取池化对象
         /// </summary>
@@ -16,19 +16,20 @@ namespace PoolSystem
         /// <returns></returns>
         public TReference GetReference<TReference>() where TReference : IReference<TReference>, new()
         {
-            int index = ReferenceTypes.GetReferenceTypeIndex<TReference>();
-            if (index == -1)
-            {
-                Debug.LogError($"ReferencePool GetReference Error:Cant Find {typeof(TReference).Name} In ReferencePool");
-                return default;
-            }
-            if (_referencePools[index] == null)
+            Type type = typeof(TReference);
+            if (!_referencePools.ContainsKey(type))
             {
                 ReferencePool referencePool = new ReferencePool();
                 referencePool.Init<TReference>();
-                _referencePools[index] = referencePool;
+                _referencePools.Add(type, referencePool);
             }
-            return _referencePools[index].GetReference<TReference>();
+            if (_referencePools.TryGetValue(type, out ReferencePool pool) && pool != null)
+                return pool.GetReference<TReference>();
+            else
+            {
+                Debug.Log($"ReferencePoolCenter GetReference Error:Cant Get Pool");
+                return default;
+            }
         }
         /// <summary>
         /// 归还池化对象
@@ -37,26 +38,21 @@ namespace PoolSystem
         /// 池化对象类型
         /// </typeparam>
         /// <param name="reference"></param>
-        public void ReleaseReference<TReference>(TReference reference)where TReference : IReference<TReference>, new()
+        public void ReleaseReference<TReference>(TReference reference) where TReference : IReference<TReference>, new()
         {
-            int index = ReferenceTypes.GetReferenceTypeIndex<TReference>();
-            if (index == -1)
-            {
-                Debug.LogError($"ReferencePool ReleaseReference Error:Cant Find {typeof(TReference).Name} In ReferencePool");
-                return;
-            }
-            if (_referencePools[index] == null)
+            Type type = typeof(TReference);
+            if (!_referencePools.TryGetValue(type,out ReferencePool pool)||pool==null)
             {
                 Debug.LogError($"ReferencePool ReleaseReference Error:Cant Find ReferencePool");
                 return;
             }
-            _referencePools[index].ReleaseReference(reference);
+            pool.ReleaseReference(reference);
         }
         public void OnDestroy()
         {
-            foreach (var temp in _referencePools)
+            foreach (var temp in _referencePools.Values)
                 temp?.OnDestroy();
-            Array.Clear(_referencePools, 0, _referencePools.Length);
+            _referencePools.Clear();
             _referencePools = null;
         }
     }

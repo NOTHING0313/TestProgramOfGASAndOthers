@@ -19,7 +19,6 @@ public class BlackBoard : IReference<BlackBoard>,IRollBackable
     }
     #endregion
     #region IReference
-    public uint ReferenceType => ReferenceTypes.BLACKBOARD;
     int IReference.IndexInReferencePool { get; set; }
     public void OnRecycle()
     {
@@ -185,7 +184,6 @@ public class BlackBoard : IReference<BlackBoard>,IRollBackable
         internal List<byte> repositoryCopy;
         internal int currentRepositorySize = 0;
         public int LocalizedLogicFrameCount { get; set; }
-        public uint ReferenceType => ReferenceTypes.BLACKBOARDSNAPSHOT;
         int IReference.IndexInReferencePool { get; set; }
         public void Release()
         {

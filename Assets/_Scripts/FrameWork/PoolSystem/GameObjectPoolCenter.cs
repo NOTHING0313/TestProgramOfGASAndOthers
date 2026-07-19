@@ -1,91 +1,139 @@
+using Sirenix.OdinInspector;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Utility;
-using System;
+
 namespace PoolSystem
 {
-    public class GameObjectPoolCenter : Singleton<GameObjectPoolCenter>
+    public sealed class GameObjectPoolCenter : Singleton<GameObjectPoolCenter>
     {
-        protected override bool _isDonDestroyOnLoad => true;
+        [SerializeField, LabelText("池子初始化个数")] 
+        private int _defaultInitialCapacity = 8;
+        [SerializeField, LabelText("UI池根节点")]
+        private RectTransform _sceneUIRoot;
+        private int _poolIDCounter = 0;
+        private readonly Dictionary<int, GameObjectPool> _gameObjectPools = new();
+        private readonly Dictionary<int, UIPool> _uiPools = new();
+        private readonly Dictionary<int, int> _normalPrefabIdToPoolId = new();
+        private readonly Dictionary<int, int> _uiPrefabIdToPoolId = new();
+        private Transform _worldPoolRoot;
+        private RectTransform _uiPoolRoot;
+        protected override void Awake()
+        {
+            base.Awake();
+            CreateRoots();
+        }
+        private void CreateRoots()
+        {
+            if (_worldPoolRoot == null)
+            {
+                GameObject go = new GameObject("WorldPoolRoot");
+                go.transform.SetParent(transform, false);
+                _worldPoolRoot = go.transform;
+            }
+            if (_uiPoolRoot == null)
+            {
+                if (_sceneUIRoot == null)
+                {
+                    Debug.LogError("GameObjectPoolCenter CreateRoots Error: SceneUIRoot Is Null.");
+                    return;
+                }
+                GameObject go = new GameObject("UIPoolRoot", typeof(RectTransform));
+                go.transform.SetParent(_sceneUIRoot, false);
+                _uiPoolRoot = go.GetComponent<RectTransform>();
+                _uiPoolRoot.anchorMin = Vector2.zero;
+                _uiPoolRoot.anchorMax = Vector2.one;
+                _uiPoolRoot.offsetMin = Vector2.zero;
+                _uiPoolRoot.offsetMax = Vector2.zero;
+                _uiPoolRoot.localScale = Vector3.one;
+                _uiPoolRoot.localRotation = Quaternion.identity;
+            }
+        }
+        public GameObject GetInstance(GameObject prefab, Vector3 worldPosition, Quaternion worldRotation, Transform parent = null, Action<GameObject> onBeforeSetActive = null, int initialCapacity = -1)
+        {
+            if (prefab == null)
+            {
+                Debug.LogError("GameObjectPoolCenter GetInstance Error: Prefab Is Null.");
+                return null;
+            }
+            int prefabID = prefab.GetInstanceID();
+            if (!_normalPrefabIdToPoolId.TryGetValue(prefabID, out int poolID))
+            {
+                poolID = _poolIDCounter++;
+                int capacity = initialCapacity > 0 ? initialCapacity : _defaultInitialCapacity;
+                GameObject rootGO = new GameObject($"Pool_Normal_{poolID}_{prefab.name}");
+                rootGO.transform.SetParent(_worldPoolRoot, false);
+                var pool = new GameObjectPool(prefab, poolID, rootGO.transform, capacity);
+                _gameObjectPools.Add(poolID, pool);
+                _normalPrefabIdToPoolId.Add(prefabID, poolID);
+            }
+            return _gameObjectPools[poolID].Get(worldPosition, worldRotation, parent, onBeforeSetActive);
+        }
 
-        private int _poolCount = 0;
-        private List<GameObjectPool> _pools = new();
-        private Dictionary<int, int> _prefabID_PoolIDMap = new();
-        /// <summary>
-        /// 获取池化对象
-        /// </summary>
-        /// <param name="prefab">
-        /// 池化对象的预制体
-        /// </param>
-        /// <param name="worldPosition">
-        /// 生成对象的世界坐标
-        /// </param>
-        /// <param name="quaternion">
-        /// 生成对象的四元数
-        /// </param>
-        /// <param name="parent">
-        /// 生成对象的父物体(只有在第一次取用的时候作为父物体，如果在后续取用需要切换父物体需要设置changeParent=true)
-        /// </param>
-        /// <param name="onBeforSetActive">
-        /// 在激活池化物体之前的事件
-        /// </param>
-        /// <param name="changeParent">
-        /// 是否改变父物体
-        /// </param>
-        /// <returns>
-        /// 被池化的物体
-        /// </returns>
-        public GameObject GetInstance(GameObject prefab, Vector3 worldPosition, Quaternion quaternion, Transform parent = null, Action<GameObject> onBeforSetActive = null, bool changeParent = false)
+        public GameObject GetUIInstance(GameObject prefab, RectTransform parent, Vector2 anchoredPosition = default, Action<GameObject> onBeforeSetActive = null, int initialCapacity = -1)
         {
-            int id = prefab.GetInstanceID();
-            GameObjectPool pool;
-            if (!_prefabID_PoolIDMap.ContainsKey(id))
+            if (prefab == null)
             {
-                pool = new();
-                GameObject newRoot = new GameObject($"GameObjectPoolRoot_{_poolCount}_{prefab.name}");
-                newRoot.transform.SetParent(parent);
-                pool.Init(prefab, _poolCount, newRoot);
-                _pools.Add(pool);
-                _prefabID_PoolIDMap.Add(id, _poolCount++);
+                Debug.LogError("GameObjectPoolCenter GetUIInstance Error: Prefab Is Null.");
+                return null;
             }
-            else
-                pool = _pools[_prefabID_PoolIDMap[id]];
-            return pool.GetGameObject(worldPosition, quaternion, parent: changeParent ? parent : null, onBeforSetActive);
-        }
-        /// <summary>
-        /// 回收池化对象
-        /// </summary>
-        /// <param name="gameObject">
-        /// 被池化的对象(一定是之前从池子中取出来的对象才能归还)
-        /// </param>
-        public void Release(GameObject gameObject)
-        {
-            if (!gameObject)
+            if (parent == null)
             {
-                Debug.LogError($"GameObjectPoolCenter Release Error:Cant Find GameObject");
+                Debug.LogError("GameObjectPoolCenter GetUIInstance Error: Parent Is Null.");
+                return null;
+            }
+            int prefabID = prefab.GetInstanceID();
+            if (!_uiPrefabIdToPoolId.TryGetValue(prefabID, out int poolID))
+            {
+                poolID = _poolIDCounter++;
+                int capacity = initialCapacity > 0 ? initialCapacity : _defaultInitialCapacity;
+                GameObject rootGO = new GameObject($"Pool_UI_{poolID}_{prefab.name}", typeof(RectTransform));
+                rootGO.transform.SetParent(_uiPoolRoot, false);
+                var pool = new UIPool(prefab, poolID, rootGO.GetComponent<RectTransform>(), capacity);
+                _uiPools.Add(poolID, pool);
+                _uiPrefabIdToPoolId.Add(prefabID, poolID);
+            }
+            return _uiPools[poolID].Get(parent, anchoredPosition, onBeforeSetActive, false);
+        }
+
+        public void Release(GameObject instance, Action<GameObject> onBeforeRelease = null)
+        {
+            if (instance == null)
+            {
+                Debug.LogError("GameObjectPoolCenter Release Error: Instance Is Null.");
                 return;
             }
-            if (!gameObject.TryGetComponent<BelongToPoolIDMarker>(out var marker))
+            PoolItem item = instance.GetComponent<PoolItem>();
+            if (item == null)
             {
-                Debug.LogError($"GameObjectPoolCenter Release Error:Cant Find Marker");
+                Debug.LogError("GameObjectPoolCenter Release Error: PoolItem Not Found.");
                 return;
             }
-            int id = marker.PoolID;
-            if (id < 0 || id >= _poolCount)
+            int poolID = item.PoolID;
+            if (_gameObjectPools.TryGetValue(poolID, out var gameObjectPool))
             {
-                Debug.LogError($"GameObjectPoolCenter Release Error:ID:{id} Is Out Of Range");
+                gameObjectPool.Release(instance, onBeforeRelease);
                 return;
             }
-            _pools[id].ReleaseInstance(gameObject);
+            if (_uiPools.TryGetValue(poolID, out var uiPool))
+            {
+                uiPool.Release(instance, onBeforeRelease);
+                return;
+            }
+            Debug.LogError($"GameObjectPoolCenter Release Error: PoolID {poolID} Not Found.");
         }
-        public void OnDestroy()
+        public void ClearAllPools()
         {
-            foreach (var pool in _pools)
-                pool?.Dispose();
-            _pools.Clear();
-            _prefabID_PoolIDMap.Clear();
-            _pools = null;
-            _prefabID_PoolIDMap = null;
+            foreach (var pool in _gameObjectPools.Values)
+                pool.Clear();
+            foreach (var pool in _uiPools.Values)
+                pool.Clear();
+            _gameObjectPools.Clear();
+            _uiPools.Clear();
+            _normalPrefabIdToPoolId.Clear();
+            _uiPrefabIdToPoolId.Clear();
         }
+        private void OnDestroy() => ClearAllPools();
     }
 }

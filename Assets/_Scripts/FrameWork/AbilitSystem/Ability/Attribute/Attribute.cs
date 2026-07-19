@@ -82,7 +82,6 @@ namespace GAS
         }
 
         #region IReference
-        public uint ReferenceType => ReferenceTypes.ATTRIBUTE;
         public IReference GetNewInstance() => new Attribute(new AttributeData());
         int IReference.IndexInReferencePool { get; set; }
         public void OnRecycle()
@@ -102,7 +101,6 @@ namespace GAS
             public AttributeData AttributeDataCopy;
             public int LocalizedLogicFrameCount { get; set; }
             public void Release() => ReferencePoolCenter.Instance.ReleaseReference(this);
-            public uint ReferenceType => ReferenceTypes.ATTRIBUTESNAPSHOT;
             int IReference.IndexInReferencePool { get; set; }
             public IReference GetNewInstance() => new AttributeSnapShot();
             public void OnRecycle() { }

@@ -25,7 +25,6 @@ namespace GAS
             Controllers[controllerType]=controller;
         }
         #region IReference
-        public uint ReferenceType => ReferenceTypes.ABILITYCOMPONENTCONTEXT;
         int IReference.IndexInReferencePool { get; set; }
         public IReference GetNewInstance() => new AbilityComponentContext();
         public void OnRecycle()

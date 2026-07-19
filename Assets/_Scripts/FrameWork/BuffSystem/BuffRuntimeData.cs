@@ -49,7 +49,6 @@ namespace BuffSystem
             effectState.Clear();
         }
         #region IReference
-        public uint ReferenceType => ReferenceTypes.BUFFRUNTIMEDATA;
         int IReference.IndexInReferencePool { get; set; }
         public IReference GetNewInstance() => new BuffRuntimeData();
         public virtual void OnRecycle()

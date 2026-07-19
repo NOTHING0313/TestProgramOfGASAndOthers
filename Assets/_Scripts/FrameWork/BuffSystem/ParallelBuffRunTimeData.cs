@@ -125,7 +125,6 @@ namespace BuffSystem
         public bool HasAnyExpiry => _expiries.Count > 0;
         public float NextExpiry => _expiries.Count > 0 ? _expiries.PeekHead() : float.PositiveInfinity;
         #region IReference
-        public new uint ReferenceType => ReferenceTypes.PARALLELBUFFRUNTIMEDATA;
         int IReference.IndexInReferencePool { get; set; }
         public new IReference GetNewInstance() => new ParallelBuffRunTimeData();
         public override void OnRecycle()

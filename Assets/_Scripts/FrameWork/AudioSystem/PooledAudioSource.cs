@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Audio;
 namespace AudioSystem
 {
     [DisallowMultipleComponent, RequireComponent(typeof(AudioSource))]
@@ -21,7 +22,7 @@ namespace AudioSystem
                 Debug.LogError("PooledAudioSource Awake Error:Cant Find AudioSource");
             Source ??= source;
         }
-        public void Init(AudioEvent audioEvent)
+        public void Init(AudioEvent audioEvent,AudioMixerRouter router)
         {
             if (Source == null)
                 Source = gameObject.AddComponent<AudioSource>();
@@ -53,6 +54,17 @@ namespace AudioSystem
             Source.volume = Mathf.Clamp01(audioEvent.volume + UnityEngine.Random.Range(-audioEvent.volumeRandom, audioEvent.volumeRandom));
             Source.pitch = Mathf.Clamp(audioEvent.pitch + UnityEngine.Random.Range(-audioEvent.pitchRandom, audioEvent.pitchRandom), -3f, 3f);
             Source.loop = audioEvent.loop;
+            AudioMixerGroup outGroup = null;
+            if (audioEvent.autoAudioBus)
+            {
+                if (router != null)
+                {
+                    router.TryGetGroup(audioEvent.bus, out outGroup);
+                }
+            }
+            else
+                outGroup = audioEvent.mixerGroup;
+            Source.outputAudioMixerGroup = outGroup;
             if (audioEvent.is3D)
             {
                 Source.spatialBlend = Mathf.Clamp01(audioEvent.spatialBlend);
